@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stellarise — Estimated Market Value</title>
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --blue:#1a5aed; --blue-light:#4d8ef0; --blue-dark:#002d75; --blue-mid:#1f7bc6;
+      --cyan:#50cdd9; --green:#19e345; --green-dark:#166534;
+      --white:#ffffff; --text:#1C1C1C; --muted:#64748b;
+      --bg:#f5f7fb; --card:#ffffff; --border:#e2e8f0;
+      --shadow:0 4px 24px rgba(0,0,0,0.08); --radius:16px;
+      --gradient:linear-gradient(135deg,#19e345 0%,#50cdd9 35%,#1f7bc6 65%,#002d75 100%);
+      --warn-bg:#fffbeb; --warn-border:#fde68a; --warn-text:#92400e; --danger:#dc2626;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Open Sans',sans-serif;background:var(--bg);color:var(--text);line-height:1.65;font-size:15px;}
+
+    /* NAV */
+    nav{background:var(--white);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+    .nav-inner{max-width:1100px;margin:0 auto;padding:0 1.5rem;height:64px;display:flex;align-items:center;justify-content:space-between;}
+    .logo-wrap{display:flex;align-items:center;gap:0.5rem;text-decoration:none;}
+    .logo-mark{height:38px;width:auto;object-fit:contain;flex-shrink:0;}
+    .logo-text{font-family:'Lato',sans-serif;font-weight:900;font-size:1.4rem;letter-spacing:-0.5px;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .nav-links{display:flex;align-items:center;gap:1.5rem;}
+    .nav-links a{color:var(--blue-light);text-decoration:none;font-size:0.88rem;font-weight:600;transition:color 0.2s;}
+    .nav-links a:hover{color:var(--blue-dark);}
+    .nav-links a.active{color:var(--blue);border-bottom:2px solid var(--blue);padding-bottom:2px;}
+    .nav-btn{background:var(--blue);color:var(--white);border:none;border-radius:9999px;padding:0.45rem 1.1rem;font-size:0.82rem;font-weight:700;cursor:pointer;text-decoration:none;transition:background 0.2s;}
+    .nav-btn:hover{background:var(--blue-dark);}
+
+    /* HERO */
+    .hero{background:var(--gradient);color:var(--white);padding:3.5rem 1.5rem 5rem;text-align:center;position:relative;overflow:hidden;}
+    .hero::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:60px;background:var(--bg);clip-path:ellipse(55% 100% at 50% 100%);}
+    .hero-inner{position:relative;z-index:1;max-width:680px;margin:0 auto;}
+    .hero-logo-wrap{display:flex;align-items:center;justify-content:center;gap:0.6rem;margin-bottom:0.6rem;}
+    .hero-logo-mark{height:56px;width:auto;object-fit:contain;flex-shrink:0;}
+    .hero-logo{font-family:'Lato',sans-serif;font-weight:900;font-size:2rem;color:var(--white);letter-spacing:-0.5px;}
+    .hero-badge{display:inline-block;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.35);border-radius:9999px;padding:0.3rem 1rem;font-size:0.74rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:1rem;}
+    .hero h1{font-family:'Lato',sans-serif;font-weight:900;font-size:clamp(1.75rem,4vw,2.75rem);line-height:1.15;margin-bottom:0.75rem;}
+    .hero h1 span{color:var(--cyan);}
+    .hero p{max-width:520px;margin:0 auto;opacity:0.9;font-size:0.95rem;}
+
+    /* TRUST BAR */
+    .trust-bar{background:var(--white);border-bottom:1px solid var(--border);padding:0.85rem 1.5rem;}
+    .trust-bar-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:center;gap:2rem;flex-wrap:wrap;}
+    .trust-item{display:flex;align-items:center;gap:0.4rem;font-size:0.78rem;font-weight:600;color:var(--muted);}
+
+    /* PAGE BODY */
+    .page-body{max-width:1100px;margin:0 auto;padding:2rem 1.5rem;display:grid;grid-template-columns:1fr 320px;gap:1.75rem;align-items:start;}
+    @media(max-width:860px){.page-body{grid-template-columns:1fr;}}
+
+    /* FORM CARD */
+    .form-card{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow);overflow:hidden;}
+    .form-card-header{padding:1.1rem 1.5rem;border-bottom:1px solid var(--border);}
+    .form-card-header h2{font-family:'Lato',sans-serif;font-weight:900;font-size:1.05rem;color:var(--blue-dark);}
+    .form-section{padding:1.1rem 1.5rem;border-bottom:1px solid var(--border);}
+    .form-section h3{font-family:'Lato',sans-serif;font-weight:700;font-size:0.78rem;color:var(--blue-mid);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.9rem;}
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;}
+    .form-group{display:flex;flex-direction:column;}
+    .form-group.full{grid-column:1/-1;}
+    .form-group label{font-size:0.72rem;font-weight:700;color:var(--blue-dark);margin-bottom:0.28rem;text-transform:uppercase;letter-spacing:0.04em;}
+    .req{color:var(--danger);}
+    .form-group input,.form-group select{padding:0.56rem 0.78rem;border:1.5px solid var(--border);border-radius:8px;font-family:'Open Sans',sans-serif;font-size:0.87rem;background:var(--white);color:var(--text);transition:border-color 0.2s;}
+    .form-group input:focus,.form-group select:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,90,237,0.1);}
+    .checkbox-row{display:flex;gap:1.25rem;flex-wrap:wrap;padding:0.3rem 0;}
+    .checkbox-row label{display:flex;align-items:center;gap:0.4rem;font-size:0.82rem;cursor:pointer;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text);}
+    .form-footer{padding:1.1rem 1.5rem;}
+    .btn{padding:0.72rem 2rem;border:none;border-radius:9999px;font-family:'Open Sans',sans-serif;font-size:0.9rem;font-weight:700;cursor:pointer;transition:all 0.2s;}
+    .btn-primary{background:var(--blue);color:var(--white);width:100%;}
+    .btn-primary:hover{background:var(--blue-dark);transform:translateY(-1px);}
+    .btn-primary:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+    .btn-secondary{background:var(--white);color:var(--blue);border:2px solid var(--blue);}
+    .btn-secondary:hover{background:var(--blue);color:var(--white);}
+
+    /* DISCLAIMER */
+    .disclaimer{background:var(--warn-bg);border:1px solid var(--warn-border);border-radius:10px;padding:0.8rem 1rem;margin:0 1.5rem 1.1rem;font-size:0.76rem;color:var(--warn-text);}
+    .disclaimer strong{display:block;margin-bottom:0.2rem;}
+
+    /* LOADING */
+    .loading{display:none;text-align:center;padding:2.5rem 1.5rem;}
+    .spinner{width:42px;height:42px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 1rem;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .loading p{color:var(--muted);font-size:0.87rem;}
+
+    /* RESULTS */
+    #results{display:none;}
+    .result-hero{background:var(--gradient);color:var(--white);border-radius:var(--radius);padding:2rem;text-align:center;margin-bottom:1.1rem;}
+    .result-hero h2{font-family:'Lato',sans-serif;font-size:0.82rem;opacity:0.85;margin-bottom:0.4rem;text-transform:uppercase;letter-spacing:0.08em;}
+    .price-range{font-family:'Lato',sans-serif;font-size:clamp(1.4rem,3vw,2rem);font-weight:900;}
+    .price-mid{font-size:0.92rem;opacity:0.75;margin-top:0.25rem;}
+    .listing-range{background:var(--card);border:2px solid var(--green);border-radius:12px;padding:1rem 1.2rem;margin-bottom:1.1rem;text-align:center;}
+    .listing-range h3{font-family:'Lato',sans-serif;font-weight:700;color:var(--green-dark);font-size:0.78rem;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.35rem;}
+    .listing-range .range{font-family:'Lato',sans-serif;font-size:1.25rem;font-weight:900;color:var(--blue-dark);}
+    .confidence-bar{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:1rem 1.2rem;margin-bottom:1.1rem;}
+    .confidence-bar h3{font-family:'Lato',sans-serif;font-size:0.83rem;font-weight:700;margin-bottom:0.55rem;color:var(--blue-dark);}
+    .conf-meter{height:10px;background:var(--border);border-radius:999px;overflow:hidden;margin-bottom:0.4rem;}
+    .conf-fill{height:100%;border-radius:999px;transition:width 0.8s ease;}
+    .conf-fill.high{background:var(--green);}
+    .conf-fill.medium{background:#f59e0b;}
+    .conf-fill.low{background:var(--danger);}
+    .conf-reasons{list-style:none;margin-top:0.55rem;}
+    .conf-reasons li{font-size:0.77rem;color:var(--muted);padding:0.16rem 0 0.16rem 1rem;position:relative;}
+    .conf-reasons li::before{content:"•";position:absolute;left:0;color:var(--blue);}
+    .comps-section{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:1rem 1.2rem;margin-bottom:1.1rem;}
+    .comps-section h3{font-family:'Lato',sans-serif;font-size:0.85rem;font-weight:700;color:var(--blue-dark);margin-bottom:0.8rem;}
+    .comp-card{border:1px solid var(--border);border-radius:10px;padding:0.85rem 0.95rem;margin-bottom:0.55rem;}
+    .comp-card:last-child{margin-bottom:0;}
+    .comp-header{display:flex;justify-content:space-between;margin-bottom:0.35rem;}
+    .comp-project{font-weight:700;font-size:0.85rem;color:var(--blue-dark);}
+    .comp-date{font-size:0.71rem;color:var(--muted);}
+    .comp-stats{display:flex;gap:1.1rem;flex-wrap:wrap;font-size:0.76rem;color:var(--muted);}
+    .comp-stats span strong{color:var(--text);}
+    .comp-adjustments{display:flex;gap:0.28rem;flex-wrap:wrap;margin-top:0.4rem;}
+    .adj-tag{font-size:0.62rem;padding:0.1rem 0.42rem;border-radius:999px;background:#f0fdf4;color:var(--green-dark);font-weight:600;}
+    .adj-tag.negative{background:#fef2f2;color:#991b1b;}
+    .basis-section{font-size:0.77rem;color:var(--muted);text-align:center;margin-bottom:0.9rem;}
+    .cta-row{display:flex;gap:0.7rem;margin-bottom:1.1rem;flex-wrap:wrap;}
+    .cta-row .btn{flex:1;min-width:150px;text-align:center;font-size:0.81rem;padding:0.65rem 0.9rem;}
+    .verify-cta{background:var(--blue-dark);border-radius:12px;padding:1.1rem;color:var(--white);text-align:center;margin-bottom:1.1rem;border-left:4px solid var(--green);}
+    .verify-cta strong{font-family:'Lato',sans-serif;font-size:0.92rem;display:block;margin-bottom:0.3rem;color:var(--green);}
+    .verify-cta p{font-size:0.78rem;opacity:0.88;margin-bottom:0.75rem;}
+    .btn-verify{background:var(--white);color:var(--blue-dark);border:none;border-radius:9999px;padding:0.55rem 1.4rem;font-weight:700;font-size:0.82rem;cursor:pointer;text-decoration:none;display:inline-block;transition:transform 0.2s;}
+    .btn-verify:hover{transform:translateY(-2px);}
+
+    /* SIDEBAR */
+    .sidebar{display:flex;flex-direction:column;gap:1.1rem;}
+    .side-card{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;box-shadow:var(--shadow);}
+    .side-card-header{background:var(--blue-dark);color:var(--white);padding:0.8rem 1.1rem;font-family:'Lato',sans-serif;font-weight:700;font-size:0.85rem;display:flex;align-items:center;gap:0.5rem;}
+    .stats-grid{display:grid;grid-template-columns:1fr 1fr;}
+    .stat-item{padding:0.85rem 1rem;border-bottom:1px solid var(--border);border-right:1px solid var(--border);}
+    .stat-item:nth-child(even){border-right:none;}
+    .stat-item:nth-last-child(-n+2){border-bottom:none;}
+    .stat-label{font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.18rem;}
+    .stat-value{font-family:'Lato',sans-serif;font-weight:900;font-size:1.05rem;color:var(--blue-dark);}
+    .stat-value.green{color:var(--green-dark);}
+    .stat-value.blue{color:var(--blue);}
+
+    /* NEWS */
+    .news-list{padding:0.35rem 0;}
+    .news-item{padding:0.8rem 1.1rem;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.15s;}
+    .news-item:last-child{border-bottom:none;}
+    .news-item:hover{background:#f8fbff;}
+    .news-cat{font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;padding:0.1rem 0.45rem;border-radius:999px;margin-bottom:0.3rem;display:inline-block;}
+    .news-cat.market{background:#eff6ff;color:var(--blue);}
+    .news-cat.policy{background:#f0fdf4;color:var(--green-dark);}
+    .news-cat.klcc{background:#fdf4ff;color:#7e22ce;}
+    .news-cat.selangor{background:#fff7ed;color:#c2410c;}
+    .news-cat.johor{background:#fefce8;color:#854d0e;}
+    .news-cat.penang{background:#f0f9ff;color:#0369a1;}
+    .news-title{font-size:0.79rem;font-weight:600;color:var(--blue-dark);line-height:1.4;margin-bottom:0.18rem;}
+    .news-date{font-size:0.68rem;color:var(--muted);}
+
+    /* VERIFY SIDE CARD */
+    .verify-card{background:var(--gradient);border-radius:var(--radius);padding:1.25rem;color:var(--white);text-align:center;}
+    .verify-card h3{font-family:'Lato',sans-serif;font-weight:900;font-size:1rem;margin-bottom:0.35rem;}
+    .verify-card p{font-size:0.78rem;opacity:0.92;margin-bottom:0.9rem;line-height:1.5;}
+
+    /* FOOTER */
+    footer{background:var(--blue-dark);color:rgba(255,255,255,0.65);text-align:center;padding:1.75rem 1.5rem;font-size:0.77rem;line-height:2;margin-top:2rem;}
+    .footer-logo{font-family:'Lato',sans-serif;font-weight:900;font-size:1.25rem;color:var(--green);}
+    footer a{color:var(--green);text-decoration:none;}
+    footer a:hover{text-decoration:underline;}
+
+    @media(max-width:640px){
+      .form-grid{grid-template-columns:1fr;}
+      .price-range{font-size:1.35rem;}
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a href="https://stellarise.io/" class="logo-wrap">
+      <img src="logo.png" alt="Stellarise" class="logo-mark" />
+      <span class="logo-text">Stellarise</span>
+    </a>
+    <div class="nav-links">
+      <a href="#">Buy</a>
+      <a href="#">Rent</a>
+      <a href="#" class="active">Valuation</a>
+      <a href="#">Blog</a>
+      <a href="https://stellarise.io/verification" class="nav-btn">Get Verified</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-logo-wrap">
+      <img src="logo.png" alt="Stellarise" class="hero-logo-mark" />
+      <div class="hero-logo">Stellarise</div>
+    </div>
+    <div class="hero-badge">🏠 Malaysia AVM &middot; NAPIC-Based Comparables</div>
+    <h1>Estimated <span>Market Value</span></h1>
+    <p>Get an instant property estimate based on recent comparable transactions across Malaysia.</p>
+  </div>
+</div>
+
+<!-- TRUST BAR -->
+<div class="trust-bar">
+  <div class="trust-bar-inner">
+    <div class="trust-item">📊 317+ Comparable Transactions</div>
+    <div class="trust-item">🗺️ KL &middot; Selangor &middot; Penang &middot; Johor</div>
+    <div class="trust-item">🔗 NFT Ownership Verified</div>
+    <div class="trust-item">📋 NAPIC / JPPH Data</div>
+  </div>
+</div>
+
+<!-- PAGE BODY -->
+<div class="page-body">
+
+  <!-- LEFT: FORM + RESULTS -->
+  <div>
+    <form id="valuationForm">
+      <div class="form-card">
+        <div class="form-card-header"><h2>Property Details</h2></div>
+
+        <div class="disclaimer">
+          <strong>Important Notice</strong>
+          Indicative marketing estimate only — not a bank, legal or certified valuation. For financing, probate or legal matters obtain a valuation from a registered valuer.
+        </div>
+
+        <!-- Property Details -->
+        <div class="form-section">
+          <h3>Location &amp; Type</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Property Type <span class="req">*</span></label>
+              <select name="propertyType" required>
+                <option value="">Select...</option>
+                <option value="condominium">Condominium</option>
+                <option value="apartment">Apartment</option>
+                <option value="serviced_residence">Serviced Residence</option>
+                <option value="flat">Flat</option>
+                <option value="terrace">Terrace</option>
+                <option value="semi_detached">Semi-Detached</option>
+                <option value="bungalow">Bungalow</option>
+                <option value="townhouse">Townhouse</option>
+                <option value="cluster_house">Cluster House</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Tenure <span class="req">*</span></label>
+              <select name="tenure" required>
+                <option value="freehold">Freehold</option>
+                <option value="leasehold">Leasehold</option>
+              </select>
+            </div>
+            <div class="form-group full">
+              <label>Project / Taman Name</label>
+              <input type="text" name="projectName" placeholder="e.g. St Mary Residences, Pavilion Damansara Heights" />
+            </div>
+            <div class="form-group full">
+              <label>Address <span class="req">*</span></label>
+              <input type="text" name="address" placeholder="e.g. 1 Jalan Tengah, KLCC" required />
+            </div>
+            <div class="form-group">
+              <label>Postcode <span class="req">*</span></label>
+              <input type="text" name="postcode" placeholder="e.g. 50450" required />
+            </div>
+            <div class="form-group">
+              <label>City</label>
+              <input type="text" name="city" placeholder="e.g. Kuala Lumpur" />
+            </div>
+            <div class="form-group full">
+              <label>State <span class="req">*</span></label>
+              <select name="state" required>
+                <option value="">Select...</option>
+                <option value="Kuala Lumpur">Kuala Lumpur</option>
+                <option value="Selangor">Selangor</option>
+                <option value="Johor">Johor</option>
+                <option value="Penang">Penang</option>
+                <option value="Perak">Perak</option>
+                <option value="Kedah">Kedah</option>
+                <option value="Kelantan">Kelantan</option>
+                <option value="Melaka">Melaka</option>
+                <option value="Negeri Sembilan">Negeri Sembilan</option>
+                <option value="Pahang">Pahang</option>
+                <option value="Sabah">Sabah</option>
+                <option value="Sarawak">Sarawak</option>
+                <option value="Terengganu">Terengganu</option>
+                <option value="Perlis">Perlis</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Size & Layout -->
+        <div class="form-section">
+          <h3>Size &amp; Layout</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Built-up (sqft) <span class="req">*</span></label>
+              <input type="text" inputmode="numeric" name="builtUpSqft" placeholder="e.g. 1450 or 1,450" required />
+              <span style="font-size:0.68rem;color:var(--muted);margin-top:0.2rem;">Accepts 1450 or 1,450</span>
+            </div>
+            <div class="form-group">
+              <label>Land Area (sqft) — Landed</label>
+              <input type="text" inputmode="numeric" name="landAreaSqft" placeholder="e.g. 2200" />
+            </div>
+            <div class="form-group">
+              <label>Bedrooms</label>
+              <select name="bedrooms">
+                <option value="">—</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3" selected>3</option>
+                <option value="4">4</option>
+                <option value="5">5+</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Bathrooms</label>
+              <select name="bathrooms">
+                <option value="">—</option>
+                <option value="1">1</option>
+                <option value="2" selected>2</option>
+                <option value="3">3</option>
+                <option value="4">4+</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Car Parks</label>
+              <select name="carParks">
+                <option value="">—</option>
+                <option value="1">1</option>
+                <option value="2" selected>2</option>
+                <option value="3">3+</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Floor Level (Strata)</label>
+              <input type="number" name="floorLevel" placeholder="e.g. 18" min="1" />
+            </div>
+            <div class="form-group">
+              <label>Year Completed</label>
+              <input type="number" name="yearCompleted" placeholder="e.g. 2011" min="1960" max="2027" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Condition -->
+        <div class="form-section">
+          <h3>Condition &amp; Features</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Renovation</label>
+              <select name="renovationLevel">
+                <option value="original">Original</option>
+                <option value="light">Light Reno</option>
+                <option value="moderate">Moderate Reno</option>
+                <option value="extensive">Extensive Reno</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Furnishing</label>
+              <select name="furnishingLevel">
+                <option value="unfurnished">Unfurnished</option>
+                <option value="partial">Partly Furnished</option>
+                <option value="full">Fully Furnished</option>
+              </select>
+            </div>
+            <div class="form-group full">
+              <label>View Quality</label>
+              <select name="viewQuality">
+                <option value="poor">Poor / Blocked</option>
+                <option value="normal" selected>Normal</option>
+                <option value="open">Open View</option>
+                <option value="premium">Premium (Sea / KLCC / Park)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group full" style="margin-top:0.85rem;">
+            <label>Additional Features</label>
+            <div class="checkbox-row">
+              <label><input type="checkbox" name="cornerFlag" /> Corner Unit / Lot</label>
+              <label><input type="checkbox" name="endLotFlag" /> End Lot</label>
+              <label><input type="checkbox" name="gatedGuarded" /> Gated &amp; Guarded</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-footer">
+          <button type="submit" class="btn btn-primary" id="submitBtn">Get Estimated Market Value</button>
+        </div>
+      </div>
+    </form>
+
+    <!-- Loading -->
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p>Analyzing comparable transactions&hellip;</p>
+    </div>
+
+    <!-- Results -->
+    <div id="results"></div>
+  </div>
+
+  <!-- RIGHT: SIDEBAR -->
+  <div class="sidebar">
+
+    <!-- Verify CTA -->
+    <div class="verify-card">
+      <h3>🏆 Prove Your Ownership</h3>
+      <p>Get your property verified on-chain with a Stellarise NFT — trusted by buyers, banks and agents.</p>
+      <a href="https://stellarise.io/verification" class="btn-verify">Get Verified &rarr;</a>
+    </div>
+
+    <!-- Market Stats -->
+    <div class="side-card">
+      <div class="side-card-header">📈 Malaysia Market 2026</div>
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-item"><div class="stat-label">OPR Rate</div><div class="stat-value blue" id="stat-opr">—</div></div>
+        <div class="stat-item"><div class="stat-label">GDP Growth</div><div class="stat-value green" id="stat-gdp">—</div></div>
+        <div class="stat-item"><div class="stat-label">Transaction Growth</div><div class="stat-value green" id="stat-txgrowth">—</div></div>
+        <div class="stat-item"><div class="stat-label">KL Price Growth</div><div class="stat-value green" id="stat-klgrowth">—</div></div>
+        <div class="stat-item"><div class="stat-label">Active Listings</div><div class="stat-value" id="stat-listings">—</div></div>
+        <div class="stat-item"><div class="stat-label">Foreign Stamp Duty</div><div class="stat-value" id="stat-fsd">—</div></div>
+      </div>
+    </div>
+
+    <!-- Property News -->
+    <div class="side-card">
+      <div class="side-card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>📰 Property News</span>
+        <span id="news-source-badge" style="font-size:0.62rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;"></span>
+      </div>
+      <div class="news-list" id="news-list">
+        <!-- Skeleton while loading -->
+        <div class="news-item" style="opacity:0.4;">
+          <div style="height:10px;background:var(--border);border-radius:4px;width:40%;margin-bottom:6px;"></div>
+          <div style="height:13px;background:var(--border);border-radius:4px;width:90%;margin-bottom:4px;"></div>
+          <div style="height:10px;background:var(--border);border-radius:4px;width:55%;"></div>
+        </div>
+        <div class="news-item" style="opacity:0.4;">
+          <div style="height:10px;background:var(--border);border-radius:4px;width:35%;margin-bottom:6px;"></div>
+          <div style="height:13px;background:var(--border);border-radius:4px;width:85%;margin-bottom:4px;"></div>
+          <div style="height:10px;background:var(--border);border-radius:4px;width:50%;"></div>
+        </div>
+        <div class="news-item" style="opacity:0.4;">
+          <div style="height:10px;background:var(--border);border-radius:4px;width:45%;margin-bottom:6px;"></div>
+          <div style="height:13px;background:var(--border);border-radius:4px;width:80%;margin-bottom:4px;"></div>
+          <div style="height:10px;background:var(--border);border-radius:4px;width:60%;"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /sidebar -->
+</div><!-- /page-body -->
+
+<footer>
+  <div style="display:flex;align-items:center;justify-content:center;gap:0.45rem;margin-bottom:0.35rem;">
+    <img src="logo.png" alt="Stellarise" style="height:28px;width:auto;" />
+    <span class="footer-logo">Stellarise</span>
+  </div>
+  <div>&copy; 2026 <a href="https://stellarise.io/">Stellarise.io</a> &mdash; Malaysian Property &middot; <a href="#">Terms</a> &middot; <a href="#">Privacy</a></div>
+  <div style="margin-top:0.35rem;opacity:0.55;font-size:0.72rem;">Estimate is indicative only. Data: NAPIC/JPPH, iProperty, The Edge Property. Not financial or legal advice.</div>
+</footer>
+
+<script>
+const API = "/api";
+
+// ── Load property news ───────────────────────────────────────────────────────
+const CAT_LABELS = { klcc:"KLCC", selangor:"Selangor", johor:"Johor", penang:"Penang", policy:"Policy", market:"Market" };
+
+function renderNews(articles, source) {
+  const list = document.getElementById("news-list");
+  const badge = document.getElementById("news-source-badge");
+  if (!list) return;
+  if (badge) badge.textContent = source === "live" ? "● Live" : "Curated";
+  if (badge) badge.style.color = source === "live" ? "#16a34a" : "var(--muted)";
+
+  list.innerHTML = "";
+  articles.forEach(a => {
+    const item = document.createElement("a");
+    item.className = "news-item";
+    item.href = a.url || "#";
+    item.target = "_blank";
+    item.rel = "noopener noreferrer";
+    item.style.cssText = "display:block;text-decoration:none;color:inherit;";
+
+    const cat = document.createElement("div");
+    cat.className = `news-cat ${a.category || "market"}`;
+    cat.textContent = CAT_LABELS[a.category] || "Market";
+
+    const title = document.createElement("div");
+    title.className = "news-title";
+    title.textContent = a.title;
+
+    const meta = document.createElement("div");
+    meta.className = "news-date";
+    const d = a.date ? new Date(a.date) : new Date();
+    const dateStr = d.toLocaleDateString("en-MY", { month:"short", year:"numeric" });
+    meta.textContent = `${dateStr} · ${a.source}`;
+
+    item.appendChild(cat);
+    item.appendChild(title);
+    item.appendChild(meta);
+    list.appendChild(item);
+  });
+}
+
+fetch(`${API}/news/latest?limit=7`)
+  .then(r => r.json())
+  .then(d => renderNews(d.articles || [], d.meta?.source))
+  .catch(() => {}); // skeleton stays on error
+
+// ── Load market stats on page load ───────────────────────────────────────────
+fetch(`${API}/market-stats`).then(r => r.json()).then(d => {
+  const s = d.stats || {};
+  const set = (id, val) => { const el = document.getElementById(id); if(el && val) el.textContent = val; };
+  set('stat-opr', s.opr);
+  set('stat-gdp', s.gdpGrowth);
+  set('stat-txgrowth', s.residentialTransactionGrowthYoY);
+  set('stat-klgrowth', s.klAveragePriceGrowth);
+  set('stat-listings', s.totalListings ? Number(s.totalListings).toLocaleString() : null);
+  set('stat-fsd', s.foreignStampDuty);
+}).catch(() => {});
+
+document.getElementById("valuationForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const btn = document.getElementById("submitBtn");
+  const loading = document.getElementById("loading");
+  const resultsDiv = document.getElementById("results");
+
+  btn.disabled = true; btn.textContent = "Calculating…";
+  loading.style.display = "block";
+  resultsDiv.style.display = "none";
+
+  const data = {
+    propertyType: form.propertyType.value,
+    tenure: form.tenure.value,
+    projectName: form.projectName.value || null,
+    address: form.address.value,
+    postcode: form.postcode.value,
+    city: form.city.value || null,
+    state: form.state.value,
+    builtUpSqft: Number(form.builtUpSqft.value.replace(/,/g,"")),
+    landAreaSqft: form.landAreaSqft.value ? Number(form.landAreaSqft.value.replace(/,/g,"")) : null,
+    bedrooms: form.bedrooms.value ? Number(form.bedrooms.value) : null,
+    bathrooms: form.bathrooms.value ? Number(form.bathrooms.value) : null,
+    carParks: form.carParks.value ? Number(form.carParks.value) : null,
+    floorLevel: form.floorLevel.value ? Number(form.floorLevel.value) : null,
+    yearCompleted: form.yearCompleted.value ? Number(form.yearCompleted.value) : null,
+    renovationLevel: form.renovationLevel.value,
+    furnishingLevel: form.furnishingLevel.value,
+    viewQuality: form.viewQuality.value,
+    cornerFlag: form.cornerFlag.checked,
+    endLotFlag: form.endLotFlag.checked,
+    gatedGuarded: form.gatedGuarded.checked,
+  };
+
+  try {
+    const res = await fetch(`${API}/valuation/estimate`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(data) });
+    const result = await res.json();
+    renderResults(result);
+  } catch(err) {
+    resultsDiv.innerHTML = `<div class="disclaimer"><strong>Error</strong>${err.message}. Please try again.</div>`;
+    resultsDiv.style.display = "block";
+  } finally {
+    btn.disabled = false; btn.textContent = "Get Estimated Market Value";
+    loading.style.display = "none";
+  }
+});
+
+function fmt(n) { return "RM " + Number(n).toLocaleString("en-MY"); }
+
+function renderResults(r) {
+  const resultsDiv = document.getElementById("results");
+
+  if (!r.marketValue) {
+    resultsDiv.innerHTML = `
+      <div class="result-hero" style="background:linear-gradient(135deg,#450a0a,#991b1b);">
+        <h2>Unable to Estimate</h2>
+        <div class="price-range" style="font-size:1rem;opacity:0.9">${r.confidence.reasons.join(". ")}</div>
+        <p class="price-mid">Please request a registered valuer review for this property.</p>
+      </div>
+      <div class="cta-row">
+        <button class="btn btn-primary" onclick="requestReview('${r.estimateId||''}','valuer')">Request Registered Valuer</button>
+        <button class="btn btn-secondary" onclick="document.getElementById('results').style.display='none';window.scrollTo(0,0);">Try Another</button>
+      </div>`;
+    resultsDiv.style.display = "block";
+    return;
+  }
+
+  const cc = r.confidence.band;
+  resultsDiv.innerHTML = `
+    <div class="result-hero">
+      <h2>Estimated Market Value</h2>
+      <div class="price-range">${fmt(r.marketValue.low)} &mdash; ${fmt(r.marketValue.high)}</div>
+      <div class="price-mid">Mid estimate: ${fmt(r.marketValue.mid)}</div>
+    </div>
+
+    <div class="listing-range">
+      <h3>Suggested Listing Range</h3>
+      <div class="range">${fmt(r.suggestedListing.low)} &mdash; ${fmt(r.suggestedListing.high)}</div>
+    </div>
+
+    <div class="confidence-bar">
+      <h3>Confidence: ${r.confidence.score}/100 &mdash; ${r.confidence.band.toUpperCase()}</h3>
+      <div class="conf-meter"><div class="conf-fill ${cc}" style="width:${r.confidence.score}%"></div></div>
+      <ul class="conf-reasons">${r.confidence.reasons.map(x=>`<li>${x}</li>`).join("")}</ul>
+    </div>
+
+    <div class="basis-section">
+      Based on <strong>${r.pricingBasis.compCount} comparable transactions</strong> &mdash;
+      Weighted PSF: <strong>RM ${r.pricingBasis.weightedPsf}/sqft</strong>
+    </div>
+
+    <div class="comps-section">
+      <h3>Comparable Transactions Used</h3>
+      ${r.comparables.map(c=>`
+        <div class="comp-card">
+          <div class="comp-header">
+            <span class="comp-project">${c.projectName||"Unknown Project"}</span>
+            <span class="comp-date">${new Date(c.transactionDate).toLocaleDateString("en-MY",{day:"numeric",month:"short",year:"numeric"})}</span>
+          </div>
+          <div class="comp-stats">
+            <span>Price: <strong>${fmt(c.price)}</strong></span>
+            <span>Size: <strong>${c.builtUpSqft} sqft</strong></span>
+            <span>PSF: <strong>RM ${c.psf}</strong></span>
+            <span>Adj PSF: <strong>RM ${c.adjustedPsf}</strong></span>
+            <span>Match: <strong>${Math.round(c.similarityScore*100)}%</strong></span>
+          </div>
+          ${c.adjustments.length?`<div class="comp-adjustments">${c.adjustments.map(a=>`<span class="adj-tag ${a.includes("-")?"negative":""}">${a}</span>`).join("")}</div>`:""}
+        </div>`).join("")}
+    </div>
+
+    <div class="verify-cta">
+      <strong>🏆 Ready to prove your ownership?</strong>
+      <p>Add an on-chain Ownership Verified NFT badge to your listing — trusted by buyers, banks and agents.</p>
+      <a href="https://stellarise.io/verification" class="btn-verify">Get Verified &rarr;</a>
+    </div>
+
+    <div class="cta-row">
+      <button class="btn btn-primary" onclick="alert('Coming soon — list your property on Stellarise.io')">List Property Now</button>
+      <button class="btn btn-secondary" onclick="requestReview('${r.estimateId||''}','agent')">Agent Review</button>
+      <button class="btn btn-secondary" onclick="requestReview('${r.estimateId||''}','valuer')">Valuer Report</button>
+    </div>
+
+    <div class="disclaimer"><strong>${r.disclaimer}</strong></div>
+  `;
+  resultsDiv.style.display = "block";
+  resultsDiv.scrollIntoView({ behavior:"smooth" });
+}
+
+async function requestReview(estimateId, reviewType) {
+  try {
+    const res = await fetch(`${API}/valuation/review-request`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ estimateId, reviewType })
+    });
+    const data = await res.json();
+    alert(`Review request submitted (${reviewType}). Reference: ${data.id||"N/A"}. We will contact you soon.`);
+  } catch { alert("Error submitting review request. Please try again."); }
+}
+</script>
+</body>
+</html>

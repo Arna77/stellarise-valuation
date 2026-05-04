@@ -1,0 +1,226 @@
+// Prisma schema for Malaysia Property Valuation Tool
+// Tables: subject_properties, comparable_transactions, area_trends, valuation_estimates
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Enums ───────────────────────────────────────────────────────────────────
+
+enum PropertyType {
+  condominium
+  apartment
+  serviced_residence
+  flat
+  terrace
+  semi_detached
+  bungalow
+  townhouse
+  cluster_house
+  commercial
+}
+
+enum Tenure {
+  freehold
+  leasehold
+}
+
+enum ViewQuality {
+  poor
+  normal
+  open
+  premium
+}
+
+enum FurnishingLevel {
+  unfurnished
+  partial
+  full
+}
+
+enum RenovationLevel {
+  original
+  light
+  moderate
+  extensive
+}
+
+enum ConfidenceBand {
+  high
+  medium
+  low
+}
+
+enum ConfidenceTag {
+  verified
+  partial
+  weak
+}
+
+enum ReviewType {
+  agent
+  valuer
+}
+
+enum ReviewStatus {
+  pending
+  in_progress
+  completed
+}
+
+// ── 1. Subject Properties ───────────────────────────────────────────────────
+
+model SubjectProperty {
+  id                   String            @id @default(uuid())
+  ownerId              String?           @map("owner_id")
+  propertyType         PropertyType      @map("property_type")
+  propertySubtype      String?           @map("property_subtype")
+  projectName          String?           @map("project_name")
+  addressLine          String            @map("address_line")
+  postcode             String
+  city                 String
+  district             String?
+  state                String
+  latitude             Decimal?
+  longitude            Decimal?
+  tenure               Tenure
+  builtUpSqft          Decimal           @map("built_up_sqft")
+  landAreaSqft         Decimal?          @map("land_area_sqft")
+  bedrooms             Int?
+  bathrooms            Int?
+  carParks             Int?              @map("car_parks")
+  floorLevel           Int?              @map("floor_level")
+  totalFloors          Int?              @map("total_floors")
+  cornerFlag           Boolean           @default(false) @map("corner_flag")
+  endLotFlag           Boolean           @default(false) @map("end_lot_flag")
+  facing               String?
+  viewQuality          ViewQuality       @default(normal) @map("view_quality")
+  furnishingLevel      FurnishingLevel   @default(unfurnished) @map("furnishing_level")
+  renovationLevel      RenovationLevel   @default(original) @map("renovation_level")
+  yearCompleted        Int?              @map("year_completed")
+  gatedGuarded         Boolean           @default(false) @map("gated_guarded")
+  maintenanceFee       Decimal?          @map("maintenance_fee_monthly")
+  createdAt            DateTime          @default(now()) @map("created_at")
+  updatedAt            DateTime          @updatedAt @map("updated_at")
+
+  estimates            ValuationEstimate[]
+
+  @@map("subject_properties")
+}
+
+// ── 2. Comparable Transactions ──────────────────────────────────────────────
+
+model ComparableTransaction {
+  id                   String            @id @default(uuid())
+  source               String
+  sourceRef            String?           @map("source_ref")
+  transactionDate      DateTime          @map("transaction_date")
+  projectName          String?           @map("project_name")
+  addressLine          String?           @map("address_line")
+  postcode             String
+  city                 String
+  district             String?
+  state                String
+  latitude             Decimal?
+  longitude            Decimal?
+  propertyType         PropertyType      @map("property_type")
+  tenure               Tenure
+  transactedPrice      Decimal           @map("transacted_price")
+  builtUpSqft          Decimal           @map("built_up_sqft")
+  landAreaSqft         Decimal?          @map("land_area_sqft")
+  psf                  Decimal
+  bedrooms             Int?
+  bathrooms            Int?
+  carParks             Int?              @map("car_parks")
+  floorLevel           Int?              @map("floor_level")
+  renovationProxy      RenovationLevel?  @map("renovation_proxy")
+  yearCompleted        Int?              @map("year_completed")
+  confidenceTag        ConfidenceTag     @default(partial) @map("confidence_tag")
+  importedAt           DateTime          @default(now()) @map("imported_at")
+
+  @@index([projectName, propertyType])
+  @@index([postcode, propertyType])
+  @@index([state, city, propertyType])
+  @@index([transactionDate])
+  @@map("comparable_transactions")
+}
+
+// ── 3. Area Trends ──────────────────────────────────────────────────────────
+
+model AreaTrend {
+  id                   String            @id @default(uuid())
+  areaCode             String            @map("area_code")
+  period               DateTime
+  propertyType         PropertyType      @map("property_type")
+  medianPsf            Decimal           @map("median_psf")
+  transactionVolume    Int               @map("transaction_volume")
+  priceIndexFactor     Decimal           @default(1.0) @map("price_index_factor")
+  listingPressure      Decimal?          @map("listing_pressure")
+  absorptionProxy      Decimal?          @map("absorption_proxy")
+  source               String?
+
+  @@unique([areaCode, period, propertyType])
+  @@map("area_trends")
+}
+
+// ── 4. Valuation Estimates ──────────────────────────────────────────────────
+
+model ValuationEstimate {
+  id                   String            @id @default(uuid())
+  subjectPropertyId    String            @map("subject_property_id")
+  estimateLow          Decimal           @map("estimate_low")
+  estimateMid          Decimal           @map("estimate_mid")
+  estimateHigh         Decimal           @map("estimate_high")
+  suggestedListLow     Decimal           @map("suggested_list_low")
+  suggestedListHigh    Decimal           @map("suggested_list_high")
+  weightedPsf          Decimal           @map("weighted_psf")
+  confidenceScore      Int               @map("confidence_score")
+  confidenceBand       ConfidenceBand    @map("confidence_band")
+  confidenceReasons    String[]          @map("confidence_reasons")
+  compCount            Int               @map("comp_count")
+  compsUsed            Json              @map("comps_used")
+  methodVersion        String            @default("v1.0") @map("method_version")
+  createdAt            DateTime          @default(now()) @map("created_at")
+
+  subjectProperty      SubjectProperty   @relation(fields: [subjectPropertyId], references: [id])
+
+  reviewRequests       ReviewRequest[]
+
+  @@map("valuation_estimates")
+}
+
+// ── 5. Review Requests ──────────────────────────────────────────────────────
+
+model ReviewRequest {
+  id                   String            @id @default(uuid())
+  estimateId           String            @map("estimate_id")
+  reviewType           ReviewType        @map("review_type")
+  status               ReviewStatus      @default(pending)
+  notes                String?
+  createdAt            DateTime          @default(now()) @map("created_at")
+  updatedAt            DateTime          @updatedAt @map("updated_at")
+
+  estimate             ValuationEstimate @relation(fields: [estimateId], references: [id])
+
+  @@map("review_requests")
+}
+
+// ── 6. Source Runs (for NAPIC/scraping audit) ───────────────────────────────
+
+model SourceRun {
+  id                   String            @id @default(uuid())
+  sourceName           String            @map("source_name")
+  status               String            @default("pending")
+  itemsFound           Int               @default(0) @map("items_found")
+  itemsImported        Int               @default(0) @map("items_imported")
+  errors               String[]
+  startedAt            DateTime          @default(now()) @map("started_at")
+  completedAt          DateTime?         @map("completed_at")
+
+  @@map("source_runs")
+}

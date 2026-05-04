@@ -1,0 +1,29 @@
+{
+  "name": "stellarise-valuation",
+  "version": "1.0.0",
+  "description": "Malaysia Property Valuation Tool for Stellarise.io — comparable-based AVM with confidence scoring",
+  "scripts": {
+    "dev": "node src/server.js",
+    "start": "node src/server.js",
+    "postinstall": "npx prisma generate",
+    "db:generate": "npx prisma generate",
+    "db:push": "npx prisma db push",
+    "db:migrate": "npx prisma migrate dev",
+    "db:seed": "node prisma/seed.js",
+    "worker": "node src/workers/syncWorker.js",
+    "fetch:napic": "node src/adapters/napicAdapter.js"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.0.0",
+    "axios": "^1.16.0",
+    "bullmq": "^5.0.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "node-cron": "^3.0.3",
+    "rss-parser": "^3.13.0",
+    "uuid": "^11.0.0"
+  },
+  "devDependencies": {
+    "prisma": "^6.0.0"
+  }
+}
