@@ -8,38 +8,56 @@
 
 require("dotenv").config();
 
-const express    = require("express");
-const cors       = require("cors");
-const helmet     = require("helmet");
-const rateLimit  = require("express-rate-limit");
-const path       = require("path");
-const cron       = require("node-cron");
-const fs         = require("fs");
+const express = require("express");
+const cors    = require("cors");
+const path    = require("path");
+const cron    = require("node-cron");
+const fs      = require("fs");
 
 const { refreshNews } = require("./scrapers/newsScraper");
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
 
-// ── Security headers ─────────────────────────────────────────────────────────
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc:  ["'self'"],
-        styleSrc:   ["'self'", "'unsafe-inline'"],
-        imgSrc:     ["'self'", "data:"],
-        connectSrc: ["'self'"],
-        frameSrc:   ["'none'"],
-        objectSrc:  ["'none'"],
-      },
-    },
-    hsts:       { maxAge: 31536000, includeSubDomains: true, preload: true },
-    frameguard: { action: "deny" },
-    xPoweredBy: false,
-  })
-);
+// ── Security headers (no external package needed) ────────────────────────────
+app.use((req, res, next) => {
+  res.removeHeader("X-Powered-By");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+  res.setHeader("Content-Security-Policy", "default-src 'self'; frame-src 'none'; object-src 'none'");
+  next();
+});
+
+// ── In-memory rate limiter (no external package needed) ──────────────────────
+// Stores: { ip → [timestamp, ...] }
+const _rlStore = new Map();
+function makeRateLimiter(windowMs, max, message) {
+  return (req, res, next) => {
+    const ip  = req.ip || (req.connection && req.connection.remoteAddress) || "unknown";
+    const now = Date.now();
+    const cutoff = now - windowMs;
+    const hits = (_rlStore.get(ip) || []).filter(t => t > cutoff);
+    if (hits.length >= max) {
+      return res.status(429).json({ error: message });
+    }
+    hits.push(now);
+    _rlStore.set(ip, hits);
+    // Prune old entries every ~500 requests to avoid unbounded memory growth
+    if (_rlStore.size > 500) {
+      for (const [k, v] of _rlStore) {
+        if (v.every(t => t <= cutoff)) _rlStore.delete(k);
+      }
+    }
+    next();
+  };
+}
+
+// Global: 200 req / 15 min per IP
+app.use(makeRateLimiter(15 * 60 * 1000, 200, "Too many requests. Please try again later."));
+
+// Estimate endpoint: 30 req / 15 min per IP
+app.use("/api/valuation/estimate", makeRateLimiter(15 * 60 * 1000, 30, "Valuation rate limit reached. Please try again in 15 minutes."));
 
 // ── CORS — restrict to Stellarise origins ────────────────────────────────────
 const ALLOWED_ORIGINS = [
@@ -56,7 +74,7 @@ const ALLOWED_ORIGINS = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (mobile apps, Postman, server-to-server, health checks)
+      // Allow no-origin requests (server-to-server, health checks, Postman)
       if (!origin) return callback(null, true);
       if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
       callback(new Error(`CORS: origin ${origin} not allowed`));
@@ -71,29 +89,6 @@ app.use(
 // ── Body size limit ──────────────────────────────────────────────────────────
 app.use(express.json({ limit: "50kb" }));
 app.use(express.static(path.join(__dirname, "..", "public")));
-
-// ── Global rate limiter — 200 req / 15 min per IP ────────────────────────────
-app.use(
-  rateLimit({
-    windowMs:       15 * 60 * 1000,
-    max:            200,
-    standardHeaders: true,
-    legacyHeaders:  false,
-    message:        { error: "Too many requests. Please try again later." },
-  })
-);
-
-// ── Stricter limiter for valuation endpoint — 30 req / 15 min per IP ─────────
-app.use(
-  "/api/valuation/estimate",
-  rateLimit({
-    windowMs:       15 * 60 * 1000,
-    max:            30,
-    standardHeaders: true,
-    legacyHeaders:  false,
-    message:        { error: "Valuation rate limit reached. Please try again in 15 minutes." },
-  })
-);
 
 app.get("/", (_req, res) =>
   res.sendFile(path.join(__dirname, "..", "public", "index.html"))
