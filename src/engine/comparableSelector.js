@@ -13,37 +13,6 @@ const MIN_COMPS = 3;
 const IDEAL_COMPS = 8;
 
 /**
- * Groups of property types that are considered interchangeable for valuation purposes.
- * Malaysian buyers and agents frequently confuse these sub-types; their PSF ranges
- * overlap significantly so cross-type comparables are valid with a small adjustment.
- */
-const COMPATIBLE_TYPE_GROUPS = [
-  new Set(["condominium", "serviced_residence", "apartment", "flat", "soho", "sofo"]),
-  new Set(["semi_detached", "semi-detached"]),
-  new Set(["terrace", "townhouse", "link_house"]),
-];
-
-/**
- * Returns the Set of types compatible with the given type (including itself),
- * or a Set containing just the type if it belongs to no group.
- */
-function getCompatibleTypes(type) {
-  for (const group of COMPATIBLE_TYPE_GROUPS) {
-    if (group.has(type)) return group;
-  }
-  return new Set([type]);
-}
-
-/**
- * True when comp and subject types are in the same compatible group but not identical.
- * Used to apply a mild PSF penalty during scoring.
- */
-function isCrossType(subject, comp) {
-  return comp.propertyType !== subject.propertyType &&
-    getCompatibleTypes(subject.propertyType).has(comp.propertyType);
-}
-
-/**
  * Filter comparables from the transaction pool.
  * @param {Object} subject - SubjectProperty record
  * @param {Array}  pool    - All ComparableTransaction records in area
@@ -52,12 +21,10 @@ function isCrossType(subject, comp) {
 function selectComparables(subject, pool) {
   const now = new Date();
 
-  const compatibleTypes = getCompatibleTypes(subject.propertyType);
-
   // Step 1: Hard filters
   let candidates = pool.filter((comp) => {
-    // Accept exact type match or compatible type (e.g. condominium ↔ serviced_residence)
-    if (!compatibleTypes.has(comp.propertyType)) return false;
+    // Same property type only
+    if (comp.propertyType !== subject.propertyType) return false;
 
     // Transaction within MAX_AGE_MONTHS
     const ageMonths = monthsDiff(comp.transactionDate, now);
@@ -81,7 +48,7 @@ function selectComparables(subject, pool) {
     (c) => c.city === subject.city && c.postcode !== subject.postcode
   );
 
-  // Build priority list: same project first, then postcode, then city
+  // Build priority list: same project first, then postcode, then city, then state-wide fallback
   let selected = [...sameProject];
   if (selected.length < IDEAL_COMPS) {
     selected.push(...samePostcode.slice(0, IDEAL_COMPS - selected.length));
@@ -89,13 +56,18 @@ function selectComparables(subject, pool) {
   if (selected.length < IDEAL_COMPS) {
     selected.push(...sameCity.slice(0, IDEAL_COMPS - selected.length));
   }
+  // State-wide fallback — used when postcode/city don't match (e.g. user entered wrong postcode)
+  if (selected.length < MIN_COMPS) {
+    const alreadySelected = new Set(selected.map(c => c.id || c.sourceRef));
+    const wider = candidates.filter(c => !alreadySelected.has(c.id || c.sourceRef));
+    selected.push(...wider.slice(0, IDEAL_COMPS - selected.length));
+  }
 
   // Step 3: Score each comparable
   selected = selected.map((comp) => ({
     ...comp,
     similarityScore: calcSimilarity(subject, comp),
-    locationTier: isSameProject(comp, subject) ? "same_project" : comp.postcode === subject.postcode ? "same_area" : "wider",
-    crossType: isCrossType(subject, comp),
+    locationTier: isSameProject(comp, subject) ? "same_project" : comp.postcode === subject.postcode ? "same_area" : comp.city === subject.city ? "wider" : "state_wide",
     ageMonths: monthsDiff(comp.transactionDate, now),
   }));
 
@@ -126,11 +98,7 @@ function calcSimilarity(subject, comp) {
   const condition = conditionScore(subject, comp);
   const attribute = attributeScore(subject, comp);
 
-  // Apply a mild penalty when comparable is a compatible-but-different type
-  // (e.g. user entered "serviced_residence" but comp is "condominium")
-  const typePenalty = isCrossType(subject, comp) ? 0.93 : 1.0;
-
-  return typePenalty * (
+  return (
     0.35 * location +
     0.20 * size +
     0.10 * tenure +
@@ -209,4 +177,4 @@ function monthsDiff(date1, date2) {
   return Math.abs((d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth()));
 }
 
-module.exports = { selectComparables, calcSimilarity, getCompatibleTypes, MIN_COMPS };
+module.exports = { selectComparables, calcSimilarity, MIN_COMPS };
