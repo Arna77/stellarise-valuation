@@ -63,16 +63,24 @@ router.post("/valuation/estimate", async (req, res) => {
       gatedGuarded:    body.gatedGuarded  || false,
     };
 
-    // Query comparable transactions from Postgres
-    const compPool = await prisma.comparableTransaction.findMany({
+    // Query comparable transactions — try postcode+city first, fall back to state-wide
+    let compPool = await prisma.comparableTransaction.findMany({
       where: {
         state: subject.state,
         OR: [
           { postcode: subject.postcode },
           { city: subject.city || undefined },
+          { district: subject.city || undefined },
         ],
       },
     });
+
+    // If no matches on postcode/city, widen to full state pool
+    if (compPool.length === 0) {
+      compPool = await prisma.comparableTransaction.findMany({
+        where: { state: subject.state },
+      });
+    }
 
     // Query area trends
     const subjectTrends = await prisma.areaTrend.findMany({
@@ -80,6 +88,7 @@ router.post("/valuation/estimate", async (req, res) => {
         OR: [
           { areaCode: subject.postcode },
           { areaCode: subject.city || undefined },
+          { areaCode: subject.state },
         ],
       },
     });
