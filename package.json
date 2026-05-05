@@ -5,7 +5,6 @@
   "scripts": {
     "dev": "node src/server.js",
     "start": "node src/server.js",
-    "postinstall": "npx prisma generate",
     "db:generate": "npx prisma generate",
     "db:push": "npx prisma db push",
     "db:migrate": "npx prisma migrate dev",
@@ -14,13 +13,13 @@
     "fetch:napic": "node src/adapters/napicAdapter.js"
   },
   "dependencies": {
-    "@prisma/client": "^6.0.0",
-    "axios": "^1.16.0",
-    "bullmq": "^5.0.0",
-    "cors": "^2.8.5",
     "express": "^4.21.0",
+    "cors": "^2.8.5",
+    "helmet": "^8.0.0",
+    "express-rate-limit": "^7.0.0",
+    "@prisma/client": "^6.0.0",
+    "bullmq": "^5.0.0",
     "node-cron": "^3.0.3",
-    "rss-parser": "^3.13.0",
     "uuid": "^11.0.0"
   },
   "devDependencies": {
