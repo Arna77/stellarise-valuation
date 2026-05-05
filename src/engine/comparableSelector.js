@@ -12,6 +12,25 @@ const SIZE_VARIANCE_THRESHOLD = 0.20; // 20%
 const MIN_COMPS = 3;
 const IDEAL_COMPS = 8;
 
+// Compatible property type groups — users often don't know the exact sub-type
+const COMPATIBLE_TYPE_GROUPS = [
+  new Set(["condominium", "serviced_residence", "apartment", "flat", "soho", "sofo"]),
+  new Set(["semi_detached", "semi-detached"]),
+  new Set(["terrace", "townhouse", "link_house"]),
+];
+
+function getCompatibleTypes(type) {
+  for (const group of COMPATIBLE_TYPE_GROUPS) {
+    if (group.has(type)) return group;
+  }
+  return new Set([type]);
+}
+
+function isCrossType(subject, comp) {
+  return comp.propertyType !== subject.propertyType &&
+    getCompatibleTypes(subject.propertyType).has(comp.propertyType);
+}
+
 /**
  * Filter comparables from the transaction pool.
  * @param {Object} subject - SubjectProperty record
@@ -22,9 +41,10 @@ function selectComparables(subject, pool) {
   const now = new Date();
 
   // Step 1: Hard filters
+  const compatibleTypes = getCompatibleTypes(subject.propertyType);
   let candidates = pool.filter((comp) => {
-    // Same property type only
-    if (comp.propertyType !== subject.propertyType) return false;
+    // Compatible property type (condominium/serviced_residence/apartment treated as interchangeable)
+    if (!compatibleTypes.has(comp.propertyType)) return false;
 
     // Transaction within MAX_AGE_MONTHS
     const ageMonths = monthsDiff(comp.transactionDate, now);
@@ -98,7 +118,8 @@ function calcSimilarity(subject, comp) {
   const condition = conditionScore(subject, comp);
   const attribute = attributeScore(subject, comp);
 
-  return (
+  const typePenalty = isCrossType(subject, comp) ? 0.93 : 1.0;
+  return typePenalty * (
     0.35 * location +
     0.20 * size +
     0.10 * tenure +
